@@ -213,7 +213,7 @@ function rate(w,level){
   st.last=level==='y'?'bad':level==='v'?'vague':'good';
   st.lastDate=today();
   st.next=shift(IV[Math.min(lv,IV.length-1)]);
-  save();
+  save();queueSync();
 }
 function due(w){var st=S.words[w];return !!st&&(st.next||'2000-01-01')<=today()}
 function isNew(w){return !S.words[w]}
@@ -421,7 +421,7 @@ function answer(qi,oi){
   block.dataset.done='1';
   if(!S.passages[p.id])S.passages[p.id]={date:today(),ans:{}};
   if(!S.passages[p.id].ans)S.passages[p.id].ans={};
-  S.passages[p.id].ans[qi]=oi;save();
+  S.passages[p.id].ans[qi]=oi;save();queueSync();
   var opts=block.querySelectorAll('.opt');
   opts.forEach(function(el,i){
     if(i===q.answer){el.classList.add('right');el.querySelector('.mark').textContent='✓'}
@@ -534,10 +534,86 @@ function mergeProgress(base,inc){
   }
   return out;
 }
+/* ===== 手机 ↔ 平板 自动同步：进度存进一个私有 Gist ===== */
+var SK='cjbao.sync.v1';
+var SYNC=(function(){
+  try{var r=JSON.parse(localStorage.getItem(SK)||'null');
+    if(r&&r.token)return {token:r.token,gist:r.gist||'',last:r.last||0,on:!!r.on};
+  }catch(e){}
+  return {token:'',gist:'',last:0,on:false};
+})();
+function syncSave(){try{localStorage.setItem(SK,JSON.stringify(SYNC))}catch(e){}}
+function syncReady(){return !!(SYNC.on&&SYNC.token&&SYNC.gist)}
+function hasNet(){return typeof fetch==='function'}
+function ghApi(method,path,body){
+  var h={'Accept':'application/vnd.github+json','Authorization':'Bearer '+SYNC.token};
+  if(body)h['Content-Type']='application/json';
+  return fetch('https://api.github.com'+path,{method:method,headers:h,body:body?JSON.stringify(body):null}).then(function(r){
+    if(r.status===401)throw new Error('令牌无效，重新生成一个');
+    if(r.status===403)throw new Error('权限不够：要用 Classic 令牌并勾上 gist');
+    if(r.status===404)throw new Error('同步码不对，或者令牌看不到它');
+    if(!r.ok)throw new Error('GitHub 返回 '+r.status);
+    return r.json();
+  });
+}
+function syncBody(){return {v:1,at:new Date().toISOString(),S:S}}
+function syncNow(manual,after){
+  if(!hasNet()){if(manual)toast('这个浏览器不支持同步');return Promise.resolve(false)}
+  if(!syncReady()){if(manual)toast(SYNC.token?'先新建一个同步码':'先把令牌粘进来');return Promise.resolve(false)}
+  return ghApi('GET','/gists/'+SYNC.gist).then(function(j){
+    var f=(j.files||{})['cijing.json'];
+    if(!f)return null;
+    if(f.truncated&&f.raw_url)return fetch(f.raw_url).then(function(r){return r.text()}).then(function(t){return JSON.parse(t)});
+    return JSON.parse(f.content||'null');
+  }).then(function(remote){
+    if(remote&&remote.S&&remote.S.words){
+      var b=JSON.stringify(S);
+      S=mergeProgress(S,remote.S);
+      if(JSON.stringify(S)!==b){save();render()}
+    }
+    return ghApi('PATCH','/gists/'+SYNC.gist,{files:{'cijing.json':{content:JSON.stringify(syncBody())}}});
+  }).then(function(){
+    SYNC.last=Date.now();syncSave();
+    if(manual)toast('已同步');
+    if(after)after();
+    return true;
+  }).catch(function(e){
+    if(manual)toast(String((e&&e.message)||e));
+    return false;
+  });
+}
+function syncCreate(){
+  if(!hasNet())return;
+  if(!SYNC.token){toast('先把令牌粘进来');return}
+  toast('正在新建…');
+  ghApi('POST','/gists',{description:'词境进度（手机 ↔ 平板同步用）',public:false,files:{'cijing.json':{content:JSON.stringify(syncBody())}}})
+    .then(function(j){SYNC.gist=j.id;SYNC.on=true;SYNC.last=Date.now();syncSave();openBackup();toast('同步码好了，填到另一台')})
+    .catch(function(e){toast(String((e&&e.message)||e))});
+}
+function syncAgo(t){
+  var m=Math.round((Date.now()-t)/60000);
+  if(m<1)return '刚刚';
+  if(m<60)return m+' 分钟前';
+  var h=Math.round(m/60);
+  if(h<48)return h+' 小时前';
+  return Math.round(h/24)+' 天前';
+}
+function syncState(){
+  if(!SYNC.token)return '还没连。连上以后，这边学的词会自动跑到另一台，哪边都不用手动传文件。';
+  if(!SYNC.gist)return '令牌有了，再点「新建同步码」。';
+  return (SYNC.on?'已连接':'已断开')+' · 同步码 <b style="font-family:ui-monospace,monospace">'+esc(SYNC.gist)+'</b><br>'+(SYNC.last?'上次同步：'+syncAgo(SYNC.last):'还没同步过');
+}
+var syncT=null;
+function queueSync(){
+  if(!syncReady())return;
+  if(syncT)clearTimeout(syncT);
+  syncT=setTimeout(function(){syncNow(false)},9000);
+}
 function storeLabel(){return STORE==='local'?'本机永久保存，关掉页面也还在':STORE==='session'?'只在这一次打开期间有效，关掉就没了':'这个浏览器不保存，关掉就没了'}
 function openBackup(){
   var txt=JSON.stringify(S);
-  openSheet('<h3>进度备份 / 设备同步</h3><p class="muted">当前存储：<b>'+storeLabel()+'</b>。</p><p class="muted">进度存在这台设备的浏览器里。手机和平板要互通：A 机导出文件 → 用微信传到 B 机 → B 机点「从文件恢复」。合并只补不删，两边各自学的词都会留下。</p><div class="row" style="margin-top:10px"><button class="btn" id="bk-dl" style="flex:1">导出文件</button><button class="btn soft" id="bk-imp" style="flex:1">从文件恢复</button></div><input type="file" id="bk-file" accept=".json,application/json" style="display:none"><label style="margin-top:14px">或者复制下面这段文字</label><textarea id="bk" style="min-height:110px;font-size:12px">'+esc(txt)+'</textarea><div class="row" style="margin-top:12px"><button class="btn soft" id="bk-copy" style="flex:1">复制</button><button class="btn" id="bk-restore" style="flex:1">恢复</button></div><button class="btn grey block" id="bk-close" style="margin-top:8px">关闭</button>');
+  var sy='<div class="hr"></div><h3 style="margin-top:0">手机 ↔ 平板 自动同步</h3><p class="muted" id="sy-state">'+syncState()+'</p><label>GitHub 令牌（只勾 gist）</label><input id="sy-token" type="password" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="ghp_ 开头的那一串" value="'+esc(String(SYNC.token||""))+'"><label>同步码</label><input id="sy-code" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="另一台设备上显示的同步码" value="'+esc(String(SYNC.gist||""))+'"><div class="row" style="margin-top:12px"><button class="btn" id="sy-go" style="flex:1">连接并同步</button><button class="btn soft" id="sy-new" style="flex:1">新建同步码</button></div><p class="muted" style="font-size:12px;line-height:1.65">怎么拿令牌：电脑开 github.com → 头像 → Settings → Developer settings → Personal access tokens → <b>Tokens (classic)</b> → Generate new token (classic) → 只勾 <b>gist</b> → 点最下面 Generate token → 复制那一串（只显示一次）。手机、平板各粘一次就通，令牌只留在你这台设备里。</p>';
+  openSheet('<h3>进度备份 / 设备同步</h3><p class="muted">当前存储：<b>'+storeLabel()+'</b>。</p>'+sy+'<div class="hr"></div><p class="muted">没网的时候还能手动传：A 机导出 → 微信传给 B 机 → B 机点「从文件恢复」，合并只补不删。</p><div class="row" style="margin-top:10px"><button class="btn" id="bk-dl" style="flex:1">导出文件</button><button class="btn soft" id="bk-imp" style="flex:1">从文件恢复</button></div><input type="file" id="bk-file" accept=".json,application/json" style="display:none"><label style="margin-top:14px">或者复制下面这段文字</label><textarea id="bk" style="min-height:110px;font-size:12px">'+esc(txt)+'</textarea><div class="row" style="margin-top:12px"><button class="btn soft" id="bk-copy" style="flex:1">复制</button><button class="btn" id="bk-restore" style="flex:1">恢复</button></div><button class="btn grey block" id="bk-close" style="margin-top:8px">关闭</button>');
   document.getElementById('bk-dl').onclick=function(){
     var name='词境进度-'+today()+'.json';
     try{
@@ -558,6 +634,19 @@ function openBackup(){
   };
   document.getElementById('bk-copy').onclick=function(){var t=document.getElementById('bk');t.select();try{document.execCommand('copy');toast('已复制')}catch(e){toast('请长按手动复制')}};
   document.getElementById('bk-restore').onclick=function(){try{var r=JSON.parse(document.getElementById('bk').value);if(!r.words)throw 0;S=mergeProgress(S,r);save();closeSheet();render();toast('已合并')}catch(e){toast('格式不对，检查是否复制完整')}};
+  document.getElementById('sy-token').onchange=function(){SYNC.token=String(this.value||'').trim();syncSave()};
+  document.getElementById('sy-code').onchange=function(){SYNC.gist=String(this.value||'').trim();syncSave()};
+  document.getElementById('sy-new').onclick=function(){
+    SYNC.token=String(document.getElementById('sy-token').value||'').trim();syncSave();syncCreate();
+  };
+  document.getElementById('sy-go').onclick=function(){
+    SYNC.token=String(document.getElementById('sy-token').value||'').trim();
+    var code=String(document.getElementById('sy-code').value||'').trim();
+    if(!SYNC.token){toast('先把令牌粘进来');return}
+    if(!code){toast('没有同步码就点右边「新建同步码」');return}
+    SYNC.gist=code;SYNC.on=true;syncSave();
+    syncNow(true,function(){openBackup()});
+  };
   document.getElementById('bk-close').onclick=closeSheet;
 }
 function openSettings(){
@@ -644,6 +733,7 @@ function toggleRot(){
 }
 function boot(){
   detectOri();ROTMODE='';syncRot();render();
+  if(syncReady())setTimeout(function(){syncNow(false)},1500);
   if(ROT==='portrait'&&!S.settings.rotHint){
     S.settings.rotHint=1;save();
     setTimeout(function(){toast('想左右分栏？点右上角 ⟳ 转成横屏')},900);
