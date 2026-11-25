@@ -312,7 +312,7 @@ function homeHTML(){
   if(STORE==='memory')warn='<div class="card" style="border-color:#e8c4c4;background:#fff7f5;margin-bottom:12px"><div class="q-text" style="font-size:14px">⚠️ 这个浏览器不让网页存进度</div><div class="sub" style="margin-top:6px">小米浏览器打开本地文件时经常这样：背到哪、哪天该复习哪些词，关掉页面就没了。<br>办法：① 用 <b>夸克 / QQ浏览器 / Chrome</b> 打开同一个文件（多数能正常存）；② 或者读完先点下面的「进度备份」留一份。</div></div>';
   else if(STORE==='session')warn='<div class="card" style="border-color:#eeddb5;background:#fffbf0;margin-bottom:12px"><div class="q-text" style="font-size:14px">⚠️ 进度只在这次打开期间有效</div><div class="sub" style="margin-top:6px">这个浏览器没给永久存储，关掉页面后今天记的词会丢。建议换 <b>夸克 / Chrome</b> 打开，或用「进度备份」留一份。</div></div>';
   return heroHTML()+warn+'<div class="sec-title"><span>文章</span><span class="muted">按发布时间倒序</span></div>'+(list||'<div class="empty">还没有文章。把今天的词发给我，我会生成第一篇。</div>')+
-  '<div class="hr"></div><div class="row"><span class="muted">进度只存本机 · 清缓存前请备份</span><div class="spacer"></div><button class="btn grey" id="btn-backup" style="min-height:36px;padding:0 14px;font-size:13px">进度备份</button></div>';
+  '<div class="hr"></div><div class="row"><span class="muted">进度 · 备份 / 手机平板同步</span><div class="spacer"></div><button class="btn grey" id="btn-backup" style="min-height:36px;padding:0 14px;font-size:13px">备份与同步</button></div>';
 }
 function readHTML(){
   var p=findPassage(state.reading);
