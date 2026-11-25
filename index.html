@@ -18,7 +18,9 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple
 body[data-font="serif"]{--read-font:"Noto Serif SC",Georgia,"Songti SC","SimSun",serif}
 .hidden{display:none!important}
 button{font-family:inherit;font-size:inherit;cursor:pointer;border:none;background:none;color:inherit}
-.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;background:rgba(247,244,238,.92);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.topbar{position:sticky;top:0;z-index:45;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 14px;background:rgba(247,244,238,.92);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.tb-left{display:flex;align-items:center;gap:4px;min-width:0}
+#btn-back{display:none;font-size:20px;line-height:1}
 .brand{font-weight:800;font-size:17px;letter-spacing:.02em}
 .brand span{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:7px;vertical-align:1px}
 .tb-actions{display:flex;gap:6px}
@@ -164,7 +166,10 @@ html.drawer .col-quiz.open .sec-title:first-of-type{padding-top:12px}
 <body>
 <div id="rotwrap">
 <header class="topbar">
-  <div class="brand"><span></span>词境</div>
+  <div class="tb-left">
+    <button class="icon-btn" id="btn-back" title="返回">←</button>
+    <div class="brand"><span></span>词境</div>
+  </div>
   <div class="tb-actions">
     <button class="icon-btn" id="btn-rot" title="转屏">⟳</button>
     <button class="icon-btn" id="btn-font" title="切换字体">Aa</button>
@@ -244,8 +249,23 @@ function esc(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&am
 var findWord=function(w){for(var i=0;i<DATA.words.length;i++)if(DATA.words[i].word===w)return DATA.words[i];return null};
 var findPassage=function(id){for(var i=0;i<DATA.passages.length;i++)if(DATA.passages[i].id===id)return DATA.passages[i];return null};
 function toast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(function(){t.classList.remove('show')},1900)}
-function openSheet(html){document.getElementById('sheet').innerHTML=html;document.getElementById('backdrop').classList.add('show')}
-function closeSheet(){document.getElementById('backdrop').classList.remove('show')}
+function openSheet(html){document.getElementById('sheet').innerHTML=html;document.getElementById('backdrop').classList.add('show');syncBack()}
+function closeSheet(){document.getElementById('backdrop').classList.remove('show');syncBack()}
+function sheetOn(){try{return document.getElementById('backdrop').classList.contains('show')}catch(e){return false}}
+function bindBackdrop(){
+  var bd=document.getElementById('backdrop');
+  if(bd&&!bd.onclick)bd.onclick=function(e){if(e&&e.target===bd)closeSheet()};
+}
+function syncBack(){
+  if(!state)return;
+  var b=document.getElementById('btn-back');if(!b)return;
+  b.style.display=(sheetOn()||state.screen!=='home')?'inline-flex':'none';
+}
+function goBack(){
+  if(sheetOn()){closeSheet();return}
+  if(state.screen==='review')toast('已退出复习，答过的词都记下了');
+  state.screen='home';state.reading=null;state.review=null;render();toTop();
+}
 document.getElementById('backdrop').addEventListener('click',function(e){if(e.target.id==='backdrop')closeSheet()});
 document.getElementById('btn-font').addEventListener('click',function(){S.settings.font=S.settings.font==='sans'?'serif':'sans';save();document.body.setAttribute('data-font',S.settings.font)});
 document.getElementById('btn-settings').addEventListener('click',openSettings);
@@ -352,7 +372,8 @@ function reviewHTML(){
   if(!st.queue.length){return '<div class="card" style="text-align:center"><div style="font-size:40px;margin:10px 0">✅</div><p class="h1">这轮复习完成了</p><p class="sub" style="margin-bottom:16px">不认识和模糊的词已排进近期复习队列。</p><button class="btn block" id="btn-home">回到首页</button></div>'}
   var w=st.queue[0],wd=findWord(w)||{word:w};
   var pct=Math.round(st.done/st.total*100);
-  return '<div class="fmeta"><span>复习 '+(st.done+1)+' / '+st.total+'</span><span>'+esc(st.from==='passage'?'本篇目标词':'到期复习')+'</span></div>'+
+  return '<div class="row" style="margin-bottom:10px"><button class="btn grey" id="btn-back2" style="min-height:34px;padding:0 12px;font-size:13px">← 返回</button><span class="muted" style="font-size:12.5px">答过的词已经记下了</span></div>'+
+  '<div class="fmeta"><span>复习 '+(st.done+1)+' / '+st.total+'</span><span>'+esc(st.from==='passage'?'本篇目标词':'到期复习')+'</span></div>'+
   '<progress value="'+pct+'" max="100"></progress>'+
   '<div class="flash" style="margin-top:14px"><div class="flash-word">'+esc(w)+'</div><div class="flash-phon">'+esc(wd.phon||'')+'</div><div class="muted" style="margin-top:6px">先想一下意思，再点“看释义”</div>'+
   '<div class="flash-back" id="flash-back">'+fullSenseHTML(wd)+(wd.note?'<div class="muted" style="margin-top:6px">💡 '+esc(wd.note)+'</div>':'')+'</div>'+
@@ -364,6 +385,9 @@ function bind(){
   rotLabel();
   if(ROTMODE==='drawer')mountQuizHandle();
   var b;
+  b=q('#btn-back');if(b)b.onclick=goBack;
+  b=q('#btn-back2');if(b)b.onclick=goBack;
+  syncBack();
   b=q('#btn-rot');if(b)b.onclick=toggleRot;
   b=q('#btn-home');if(b)b.onclick=function(){state.screen='home';state.reading=null;state.review=null;render();toTop()};
   b=q('#btn-backup');if(b)b.onclick=openBackup;
@@ -756,7 +780,7 @@ function toggleRot(){
   },800);
 }
 function boot(){
-  detectOri();ROTMODE='';syncRot();render();
+  detectOri();ROTMODE='';syncRot();bindBackdrop();render();
   if(syncReady())setTimeout(function(){syncNow(false)},1500);
   if(ROT==='portrait'&&!S.settings.rotHint){
     S.settings.rotHint=1;save();
