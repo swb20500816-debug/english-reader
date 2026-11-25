@@ -609,6 +609,14 @@ function queueSync(){
   if(syncT)clearTimeout(syncT);
   syncT=setTimeout(function(){syncNow(false)},9000);
 }
+/* 背完就锁屏/切走：别等 9 秒的定时器，立刻推一次 */
+try{
+  document.addEventListener('visibilitychange',function(){
+    if(document.visibilityState==='hidden'&&syncReady()){
+      if(syncT){clearTimeout(syncT);syncT=null;syncNow(false)}
+    }
+  });
+}catch(e){}
 function storeLabel(){return STORE==='local'?'本机永久保存，关掉页面也还在':STORE==='session'?'只在这一次打开期间有效，关掉就没了':'这个浏览器不保存，关掉就没了'}
 function openBackup(){
   var txt=JSON.stringify(S);
