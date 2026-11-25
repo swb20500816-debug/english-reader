@@ -24,7 +24,7 @@ button{font-family:inherit;font-size:inherit;cursor:pointer;border:none;backgrou
 .tb-actions{display:flex;gap:6px}
 .icon-btn{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;color:var(--ink2);font-size:16px}
 .icon-btn:active{background:var(--accent-soft)}
-main{max-width:760px;margin:0 auto;padding:14px 14px 48px}
+main{max-width:760px;margin:0 auto;padding:14px 14px calc(48px + env(safe-area-inset-bottom))}
 .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 2px 10px rgba(31,36,51,.04)}
 .hero{background:linear-gradient(150deg,#fffdf8 0%,#fbf3ea 100%)}
 .h1{font-size:19px;font-weight:800;letter-spacing:.01em;margin:0 0 4px}
@@ -95,7 +95,7 @@ body[data-font="serif"] .article{font-family:var(--read-font);font-size:18px}
 .rate.y{background:var(--bad-soft);color:var(--bad);border-color:#f0d5d0}
 .rate.v{background:var(--warn-soft);color:var(--warn);border-color:#eeddb5}
 .rate.g{background:var(--good-soft);color:var(--good);border-color:#cfe4d8}
-.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:rgba(31,36,51,.92);color:#fff;font-size:13.5px;padding:10px 18px;border-radius:999px;opacity:0;transition:.25s;z-index:100;pointer-events:none;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
+.toast{position:fixed;left:50%;bottom:calc(26px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);background:rgba(31,36,51,.92);color:#fff;font-size:13.5px;padding:10px 18px;border-radius:999px;opacity:0;transition:.25s;z-index:100;pointer-events:none;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .empty{text-align:center;padding:30px 10px;color:var(--ink3);font-size:14px}
 .hr{height:1px;background:var(--line);margin:16px 0}
@@ -128,17 +128,14 @@ progress{width:100%;height:6px;border-radius:99px;appearance:none}
 progress::-webkit-progress-bar{background:#efece4;border-radius:99px}
 progress::-webkit-progress-value{background:var(--accent);border-radius:99px}
 @media(max-width:420px){.article{font-size:17px}.stats{gap:8px}.stat b{font-size:18px}}
-html.rot90,html.rot90 body{height:100%;overflow:hidden;overscroll-behavior:none}
-html.rot90 #rotwrap{position:fixed;top:0;left:0;transform-origin:0 0;overflow:hidden;background:var(--bg);display:flex;flex-direction:column;touch-action:manipulation}
-html.rot90 .topbar{position:static;flex:0 0 auto}
-html.rot90 main{flex:1 1 auto;min-height:0;max-width:none;padding:10px 18px 40px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
-html.rot90 .reader-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,.82fr);gap:26px;align-items:start}
-html.rot90 .reader-grid .col-quiz{position:static;max-height:none;overflow:visible;padding-bottom:0}
-html.rot90 .backdrop{align-items:center}
-html.rot90 .sheet{border-radius:18px;max-width:min(560px,86%);max-height:86%}
-html.rot90 .toast{bottom:auto;top:16px}
-.rot-only{display:none!important}
-html.rot90 .rot-only{display:inline-flex!important}
+/* 题目抽屉：给不能强制横屏的浏览器（iOS 上的各种浏览器都是 WebKit）用 */
+html.drawer body{padding-bottom:calc(56px + env(safe-area-inset-bottom))}
+html.drawer .reader-grid{display:block}
+html.drawer .col-quiz{position:fixed;left:0;right:0;bottom:0;z-index:30;max-height:66vh;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;background:var(--card);border-top:1px solid var(--line);border-radius:16px 16px 0 0;box-shadow:0 -8px 28px rgba(20,22,30,.14);padding:0 14px calc(16px + env(safe-area-inset-bottom));transform:translateY(calc(100% - 46px));transition:transform .22s ease}
+html.drawer .col-quiz.open{transform:translateY(0)}
+html.drawer .col-quiz:not(.open){overflow:hidden}
+html.drawer .quiz-handle{position:sticky;top:0;z-index:2;margin:0 -14px;width:calc(100% + 28px);height:46px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--card);border-bottom:1px solid var(--line);font:inherit;font-size:14px;font-weight:700;color:var(--accent)}
+html.drawer .col-quiz.open .sec-title:first-of-type{padding-top:12px}
 .reader-tools{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 6px}
 .tool{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:0 15px;border-radius:11px;background:#efece4;color:var(--ink2);font-size:13px;font-weight:700}
 .tool:active{background:#e4dfd2}
@@ -146,7 +143,7 @@ html.rot90 .rot-only{display:inline-flex!important}
 @media(min-width:780px){
   main{max-width:1200px}
   .reader-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,.8fr);gap:26px;align-items:start}
-  .reader-grid .col-quiz{position:sticky;top:64px;max-height:calc(100vh - 82px);overflow:auto;overscroll-behavior:contain;padding-bottom:40px}
+  .reader-grid .col-quiz{position:sticky;top:64px;max-height:calc(100vh - 82px);max-height:calc(100dvh - 82px);overflow:auto;overscroll-behavior:contain;padding-bottom:40px}
   .reader-grid .col-quiz::-webkit-scrollbar{width:0}
   .reader-grid .col-read{min-width:0}
 }
@@ -159,6 +156,8 @@ html.rot90 .rot-only{display:inline-flex!important}
   .card,.q-block{break-inside:avoid;box-shadow:none}
   .article{font-size:11.5pt;line-height:1.75}
   .opt{border-color:#ddd}
+  html.drawer .col-quiz{position:static;transform:none;max-height:none;overflow:visible;box-shadow:none;border:0;padding:0}
+  .quiz-handle{display:none!important}
 }
 </style>
 </head>
@@ -168,8 +167,6 @@ html.rot90 .rot-only{display:inline-flex!important}
   <div class="brand"><span></span>词境</div>
   <div class="tb-actions">
     <button class="icon-btn" id="btn-rot" title="转屏">⟳</button>
-    <button class="icon-btn rot-only" id="btn-up" title="上一屏">▲</button>
-    <button class="icon-btn rot-only" id="btn-dn" title="下一屏">▼</button>
     <button class="icon-btn" id="btn-font" title="切换字体">Aa</button>
     <button class="icon-btn" id="btn-settings" title="设置">⚙</button>
   </div>
@@ -183,16 +180,26 @@ html.rot90 .rot-only{display:inline-flex!important}
 (function(){
 "use strict";
 var DATA=(function(){try{return JSON.parse(document.getElementById('data').textContent||'{}')}catch(e){return {}}})().DATA||{words:[],passages:[]};
-var LS='cjbao.progress.v1';
+var LS='cijing.progress.v1';
+var LS_OLD='cjbao.progress.v1';
 var DEF={words:{},passages:{},settings:{font:'sans',dailyNew:12}};
 var IV=[0,1,2,4,7,15,30,45,90];
 if(typeof Object.assign!=='function')Object.assign=function(t){for(var i=1;i<arguments.length;i++){var s=arguments[i]||{};for(var k in s)if(Object.prototype.hasOwnProperty.call(s,k))t[k]=s[k]}return t};
 if(typeof NodeList!=='undefined'&&NodeList.prototype&&!NodeList.prototype.forEach)NodeList.prototype.forEach=Array.prototype.forEach;
 var MEM=null;
 var STORE=(function(){
-  try{localStorage.setItem('cjbao.p','1');localStorage.removeItem('cjbao.p');return 'local'}catch(e){}
-  try{sessionStorage.setItem('cjbao.p','1');sessionStorage.removeItem('cjbao.p');return 'session'}catch(e){}
+  try{localStorage.setItem('cijing.p','1');localStorage.removeItem('cijing.p');return 'local'}catch(e){}
+  try{sessionStorage.setItem('cijing.p','1');sessionStorage.removeItem('cijing.p');return 'session'}catch(e){}
   return 'memory';
+})();
+/* 旧版本进度用的是 cjbao.* 前缀：先搬过来，免得升级后看起来“进度丢了” */
+(function(){
+  try{
+    var box=STORE==='local'?localStorage:STORE==='session'?sessionStorage:null;
+    if(!box)return;
+    var old=box.getItem(LS_OLD);
+    if(old){if(!box.getItem(LS))box.setItem(LS,old);box.removeItem(LS_OLD)}
+  }catch(e){}
 })();
 var S=load();
 function pad(n){return String(n).length<2?'0'+n:String(n)}
@@ -355,10 +362,9 @@ function reviewHTML(){
 function bind(){
   var q=function(s){return document.querySelector(s)};
   rotLabel();
+  if(ROTMODE==='drawer')mountQuizHandle();
   var b;
   b=q('#btn-rot');if(b)b.onclick=toggleRot;
-  b=q('#btn-up');if(b)b.onclick=function(){scrollPage(-1)};
-  b=q('#btn-dn');if(b)b.onclick=function(){scrollPage(1)};
   b=q('#btn-home');if(b)b.onclick=function(){state.screen='home';state.reading=null;state.review=null;render();toTop()};
   b=q('#btn-backup');if(b)b.onclick=openBackup;
   b=q('#btn-img');if(b)b.onclick=saveImage;
@@ -490,12 +496,13 @@ function saveImage(){
       var W=1080,PAD=64,SC=2;
       var cv=document.createElement('canvas'),ctx=cv.getContext('2d');
       var h=layoutArticle(ctx,p,W,PAD,false);
-      while(W*SC*h*SC>14000000&&SC>1)SC-=0.25;
+      while((W*SC*h*SC>12000000||W*SC>4096||h*SC>4096)&&SC>0.5)SC-=0.1;
       cv.width=Math.round(W*SC);cv.height=Math.round(h*SC);
       ctx=cv.getContext('2d');ctx.scale(SC,SC);
       ctx.fillStyle='#fff';ctx.fillRect(0,0,W,h);
       layoutArticle(ctx,p,W,PAD,true);
       var url=cv.toDataURL('image/png');
+      if(!url||url.length<2000){toast('这篇太长，图片没生成出来，请用「打印 / 存 PDF」');return}
       openSheet('<h3>长按图片保存</h3><p class="muted">在图片上长按 → 保存到相册 / 笔记；或者点下面的按钮直接下载。</p><img src="'+url+'" style="width:100%;border:1px solid var(--line);border-radius:10px" alt="文章图片"><a class="btn block" id="img-dl" style="margin-top:12px;text-decoration:none" download="词境-'+esc(p.title)+'-'+today()+'.png" href="'+url+'">下载这张图</a><button class="btn grey block" id="img-close" style="margin-top:8px">关闭</button>');
       document.getElementById('img-close').onclick=closeSheet;
       document.getElementById('img-dl').onclick=function(){setTimeout(closeSheet,1500)};
@@ -508,6 +515,7 @@ function openAnswerInput(){
   openSheet('<h3>输入答案</h3><p class="muted">按题号顺序输入字母，'+n+' 道题就输 '+n+' 个，例如 ACBD。</p><input id="ans-in" inputmode="text" autocapitalize="characters" autocorrect="off" spellcheck="false" style="letter-spacing:.3em;font-size:22px;text-align:center;text-transform:uppercase"><button class="btn block" id="ans-go" style="margin-top:12px">判分</button>');
   var inp=document.getElementById('ans-in');
   inp.focus();
+  try{setTimeout(function(){if(inp&&inp.scrollIntoView)inp.scrollIntoView({block:'center'})},320)}catch(e){}
   document.getElementById('ans-go').onclick=function(){
     var s=String(inp.value||'').toUpperCase().replace(/[^A-D]/g,'');
     if(s.length!==n){toast('要输 '+n+' 个字母，现在 '+s.length+' 个');return}
@@ -535,8 +543,15 @@ function mergeProgress(base,inc){
   return out;
 }
 /* ===== 手机 ↔ 平板 自动同步：进度存进一个私有 Gist ===== */
-var SK='cjbao.sync.v1';
+var SK='cijing.sync.v1';
+var SK_OLD='cjbao.sync.v1';
 var SYNC=(function(){
+  try{
+    if(!localStorage.getItem(SK)){
+      var ov=localStorage.getItem(SK_OLD);
+      if(ov){localStorage.setItem(SK,ov);localStorage.removeItem(SK_OLD)}
+    }
+  }catch(e){}
   try{var r=JSON.parse(localStorage.getItem(SK)||'null');
     if(r&&r.token)return {token:r.token,gist:r.gist||'',last:r.last||0,on:!!r.on};
   }catch(e){}
@@ -640,7 +655,15 @@ function openBackup(){
     fr.onerror=function(){toast('读不了这个文件')};
     fr.readAsText(f);
   };
-  document.getElementById('bk-copy').onclick=function(){var t=document.getElementById('bk');t.select();try{document.execCommand('copy');toast('已复制')}catch(e){toast('请长按手动复制')}};
+  document.getElementById('bk-copy').onclick=function(){
+    var t=document.getElementById('bk'),txt=String(t.value||'');
+    var ok=function(){toast('已复制')};
+    var bad=function(){try{t.focus();t.select();document.execCommand('copy');ok()}catch(e){toast('请长按手动复制')}};
+    try{
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(ok,bad);return}
+    }catch(e){}
+    bad();
+  };
   document.getElementById('bk-restore').onclick=function(){try{var r=JSON.parse(document.getElementById('bk').value);if(!r.words)throw 0;S=mergeProgress(S,r);save();closeSheet();render();toast('已合并')}catch(e){toast('格式不对，检查是否复制完整')}};
   document.getElementById('sy-token').onchange=function(){SYNC.token=String(this.value||'').trim();syncSave()};
   document.getElementById('sy-code').onchange=function(){SYNC.gist=String(this.value||'').trim();syncSave()};
@@ -674,37 +697,30 @@ function isRot(){return ROTMODE!==''}
 function toTop(){try{window.scrollTo(0,0)}catch(e){}
   var w=document.getElementById('rotwrap');if(w&&w.scrollTop)w.scrollTop=0;
   var m=document.getElementById('app');if(m&&m.scrollTop)m.scrollTop=0}
-function vpSize(){
-  var d=document.documentElement||{};
-  var W=d.clientWidth||window.innerWidth||360;
-  var H=d.clientHeight||window.innerHeight||640;
-  return {w:W,h:H};
+function drawerOn(){return ROTMODE==='drawer'}
+function mountQuizHandle(){
+  if(!drawerOn())return;
+  var q=document.querySelector('.col-quiz');if(!q||q.querySelector('.quiz-handle'))return;
+  var b=document.createElement('button');b.type='button';b.className='quiz-handle';
+  b.innerHTML='<span id="qh-txt">题目 · 点这里展开</span>';
+  q.insertBefore(b,q.firstChild);
+  b.onclick=function(){
+    var on=q.classList.toggle('open');
+    var t=document.getElementById('qh-txt');
+    if(t)t.textContent=on?'收起题目':'题目 · 点这里展开';
+  };
 }
-function layRot(){
-  var w=document.getElementById('rotwrap');if(!w)return;
-  if(ROTMODE!=='css'){w.style.width='';w.style.height='';w.style.transform='';w.style.transformOrigin='';return}
-  var s=vpSize(),W=s.w,H=s.h;
-  w.style.width=H+'px';w.style.height=W+'px';w.style.transformOrigin='0 0';
-  w.style.transform='rotate(90deg) translateY(-'+W+'px)';
-}
+function enterDrawer(){ROTMODE='drawer';syncRot();mountQuizHandle()}
 function rotLabel(){
   var b=document.getElementById('btn-rot');if(!b)return;
-  var on=isRot();
-  b.textContent=on?'⟲':'⟳';
-  b.title=on?'转回竖屏':'转成横屏';
+  b.textContent=isRot()?'⟲':'⟳';
+  b.title=ROTMODE==='native'?'转回竖屏':ROTMODE==='drawer'?'收起题目栏':'横屏 / 边看边做';
   b.setAttribute('aria-label',b.title);
 }
 function syncRot(){
   try{var h=document.documentElement;
-    if(ROTMODE==='css')h.classList.add('rot90');else h.classList.remove('rot90')}catch(e){}
-  layRot();rotLabel();toTop();
-}
-function scrollPage(dir){
-  var m=document.getElementById('app');
-  if(m&&m.clientHeight&&m.scrollHeight>m.clientHeight+4){m.scrollTop=Math.max(0,m.scrollTop+dir*m.clientHeight*0.85);return}
-  var w=document.getElementById('rotwrap');
-  if(w&&w.clientHeight&&w.scrollHeight>w.clientHeight+4){w.scrollTop=Math.max(0,w.scrollTop+dir*w.clientHeight*0.85);return}
-  try{window.scrollBy(0,dir*(window.innerHeight||600)*0.85)}catch(e){}
+    if(ROTMODE==='drawer')h.classList.add('drawer');else h.classList.remove('drawer')}catch(e){}
+  rotLabel();toTop();
 }
 function exitAll(){
   ROTMODE='';
@@ -722,10 +738,10 @@ function nativeLandscape(){
   return true;
 }
 function toggleRot(){
-  if(isRot()){exitAll();toast('已转回竖屏');return}
+  if(ROTMODE){var was=ROTMODE;exitAll();toast(was==='drawer'?'已收起题目栏':'已转回竖屏');return}
   if(!nativeLandscape()){
-    ROTMODE='css';syncRot();
-    toast('这个浏览器不支持系统转屏，已用备用方式');
+    enterDrawer();
+    toast('这个浏览器不能强制横屏，已把题目钉在屏幕下方，边看边做');
     return;
   }
   setTimeout(function(){
@@ -734,8 +750,8 @@ function toggleRot(){
     else{
       try{if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen()}catch(e){}
       try{if(screen.orientation.unlock)screen.orientation.unlock()}catch(e){}
-      ROTMODE='css';syncRot();
-      toast('已横屏 · 手指划不动就用右上角 ▲▼');
+      enterDrawer();
+      toast('没转成功，已把题目钉在屏幕下方');
     }
   },800);
 }
@@ -746,7 +762,7 @@ function boot(){
     S.settings.rotHint=1;save();
     setTimeout(function(){toast('想左右分栏？点右上角 ⟳ 转成横屏')},900);
   }
-  var onResize=function(){detectOri();if(ROTMODE==='css')layRot();rotLabel()};
+  var onResize=function(){detectOri();rotLabel()};
   try{window.addEventListener('resize',onResize)}catch(e){}
   try{window.addEventListener('orientationchange',onResize)}catch(e){}
   try{document.addEventListener('fullscreenchange',function(){
