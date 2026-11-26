@@ -596,6 +596,14 @@ function ghApi(method,path,body){
   });
 }
 function syncBody(){return {v:1,at:new Date().toISOString(),S:S}}
+function softRefresh(){
+  // 同步带回来的改动只在首页重绘。做题、复习、或弹层开着时重绘会把页面打回开头，
+  // 题目状态全丢——所以这些时候只存不画，等你自己回到首页自然会刷新。
+  if(!state||state.screen!=='home')return;
+  if(state.reading||state.review)return;
+  if(sheetOn())return;
+  render();
+}
 function syncNow(manual,after){
   if(!hasNet()){if(manual)toast('这个浏览器不支持同步');return Promise.resolve(false)}
   if(!syncReady()){if(manual)toast(SYNC.token?'先新建一个同步码':'先把令牌粘进来');return Promise.resolve(false)}
@@ -608,7 +616,7 @@ function syncNow(manual,after){
     if(remote&&remote.S&&remote.S.words){
       var b=JSON.stringify(S);
       S=mergeProgress(S,remote.S);
-      if(JSON.stringify(S)!==b){save();render()}
+      if(JSON.stringify(S)!==b){save();softRefresh()}
     }
     return ghApi('PATCH','/gists/'+SYNC.gist,{files:{'cijing.json':{content:JSON.stringify(syncBody())}}});
   }).then(function(){
