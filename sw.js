@@ -1,6 +1,6 @@
 /* 词境的离线缓存。页面本身是网络优先：只要联网就是最新的；
    断网时回落到缓存，所以她装在桌面上之后，地铁里也能读。 */
-const CACHE = 'cijing-v9';
+const CACHE = 'cijing-v10';
 const ASSETS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', function (e) {
