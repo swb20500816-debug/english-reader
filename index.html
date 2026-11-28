@@ -91,6 +91,15 @@ body[data-font="serif"] .article{font-family:var(--read-font);font-size:18px}
 .sense .zh{font-weight:700}
 .sense .ex{color:var(--ink2);font-size:13.5px;margin-top:2px}
 .sense .exhint{color:var(--ink3);font-size:12.5px}
+.fopts{display:grid;gap:10px;margin-top:18px;text-align:left}
+.fopt{display:block;width:100%;text-align:left;padding:13px 15px;border-radius:14px;border:1.5px solid var(--line);background:#fff;font-size:15.5px;line-height:1.5;color:var(--ink);font-weight:600}
+.fopt:active{transform:scale(.995)}
+.fopt .k{display:inline-block;width:22px;height:22px;line-height:22px;text-align:center;border-radius:7px;background:#efece4;font-size:12px;margin-right:9px;color:var(--ink3);font-weight:700}
+.fopt.ok{border-color:#2f8f5b;background:#eef8f1}
+.fopt.ok .k{background:#cfe9d9;color:#1f6b43}
+.fopt.bad{border-color:#c0392b;background:#fdeeec}
+.fopt.bad .k{background:#f6d5d1;color:#90251a}
+.fopt.dim{opacity:.5}
 .fmeta{font-size:12px;color:var(--ink3);margin-bottom:14px;display:flex;justify-content:space-between}
 .rates{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
 .rate{min-height:48px;border-radius:12px;font-weight:700;font-size:14px;border:1px solid var(--line);background:#fff}
@@ -541,6 +550,42 @@ function readHTML(){
     '</div>'+zhPane+
   '</div>';
 }
+/* CHOICE-SRC */
+function hstr(s){var h=2166136261;for(var i=0;i<s.length;i++){h^=s.charCodeAt(i);h=(h*16777619)>>>0}return h>>>0}
+function srand(seed){var x=(seed||1)%2147483647;if(x<=0)x=1;return function(){x=(x*16807)%2147483647;return (x-1)/2147483646}}
+function shortZh(wd){
+  if(!wd)return '';
+  var ss=(wd.senses&&wd.senses.length)?wd.senses:[];
+  var z=(ss[0]&&ss[0].zh)||wd.zh||'';
+  return String(z).trim();
+}
+function choiceFor(w){
+  var wd=findWord(w)||{word:w};
+  var right=shortZh(wd)||'（这个词还没有释义）';
+  var pos=((wd.senses&&wd.senses[0]&&wd.senses[0].pos)||'');
+  var same=[],other=[];
+  DATA.words.forEach(function(x){
+    if(x.word===w)return;
+    var z=shortZh(x);
+    if(!z||z===right||z.length<2)return;
+    var p=((x.senses&&x.senses[0]&&x.senses[0].pos)||'');
+    if(pos&&p===pos)same.push(z);else other.push(z);
+  });
+  var rnd=srand(hstr(w)||11);
+  function take(arr,need,out){
+    for(var g=0;g<300&&out.length<need&&arr.length;g++){
+      var i=Math.floor(rnd()*arr.length),z=arr.splice(i,1)[0];
+      if(out.indexOf(z)<0)out.push(z);
+    }
+    return out;
+  }
+  var opts=[right];
+  take(same,4,opts);
+  take(other,4,opts);
+  for(var i=opts.length-1;i>0;i--){var j=Math.floor(rnd()*(i+1));var t=opts[i];opts[i]=opts[j];opts[j]=t}
+  return {opts:opts,ans:opts.indexOf(right),right:right};
+}
+/* /CHOICE-SRC */
 function reviewHTML(){
   var st=state.review;if(!st)return '';
   if(!st.queue.length){
@@ -553,16 +598,17 @@ function reviewHTML(){
       (sb.length?'<button class="btn soft block" id="btn-stub" style="margin-top:12px">看顽固词（'+sb.length+' 个）</button>':'')+
       '<button class="btn block" id="btn-home" style="margin-top:8px">回到首页</button></div>';
   }
-  var w=st.queue[0],wd=findWord(w)||{word:w};
+  var w=st.queue[0],wd=findWord(w)||{word:w},ch=choiceFor(w);
   var pct=Math.round(st.done/st.total*100);
   return '<div class="row" style="margin-bottom:10px"><button class="btn grey" id="btn-back2" style="min-height:34px;padding:0 12px;font-size:13px">← 返回</button><span class="muted" style="font-size:12.5px">答过的词已经记下了</span></div>'+
   '<div class="fmeta"><span>复习 '+(st.done+1)+' / '+st.total+'</span><span>'+esc(st.from==='passage'?'本篇目标词':st.from==='stub'?'顽固词':'到期复习')+'</span></div>'+
   (((st.ok||0)+(st.bad||0))?'<div class="muted" style="font-size:12.5px;margin:2px 0 0">本轮 记得 '+(st.ok||0)+' · 忘了 '+(st.bad||0)+'</div>':'')+
   '<progress value="'+pct+'" max="100"></progress>'+
-  '<div class="flash" style="margin-top:14px"><div class="flash-word">'+esc(w)+'</div><div class="flash-phon">'+esc(wd.phon||'')+'</div><div class="muted" style="margin-top:6px">先想一下意思，再点“看释义”</div>'+
+  '<div class="flash" style="margin-top:14px"><div class="flash-word">'+esc(w)+'</div><div class="flash-phon">'+esc(wd.phon||'')+'</div><div class="muted" style="margin-top:6px">下面四个里，哪个是它的意思？</div>'+
+  '<div class="fopts">'+ch.opts.map(function(z,i){return '<button class="fopt" data-i="'+i+'"><span class="k">'+'ABCD'.charAt(i)+'</span>'+esc(z)+'</button>'}).join('')+'</div>'+
   '<div class="flash-back" id="flash-back">'+fullSenseHTML(wd)+(wd.note?'<div class="muted" style="margin-top:6px">💡 '+esc(wd.note)+'</div>':'')+'</div>'+
-  '<button class="btn block" id="btn-reveal" style="margin-top:16px">看释义</button>'+
-  '<div class="rates hidden" id="rates"><button class="rate y" data-l="y">不认识</button><button class="rate v" data-l="v">模糊</button><button class="rate g" data-l="g">认识</button></div></div>';
+  '<button class="btn block hidden" id="btn-nextc" style="margin-top:14px">下一个 →</button>'+
+  '<button class="btn grey block" id="btn-skip" style="margin-top:8px">想不起来 · 看答案</button></div>';
 }
 function bind(){
   var q=function(s){return document.querySelector(s)};
@@ -598,13 +644,27 @@ function bind(){
     S.passages[p.id].date=today();save();
     startReview(p.targets.slice(),'passage');
   };
-  b=q('#btn-reveal');if(b)b.onclick=function(){q('#flash-back').classList.add('show');b.classList.add('hidden');q('#rates').classList.remove('hidden')};
-  document.querySelectorAll('.rate').forEach(function(el){el.onclick=function(){
-    var lv=el.dataset.l;
-    rate(state.review.queue.shift(),lv);
-    if(lv==='g')state.review.ok=(state.review.ok||0)+1;else state.review.bad=(state.review.bad||0)+1;
-    state.review.done++;render();toTop()
-  }});
+  var choiceAns=function(pick){
+    var st=state.review;if(!st||st.locked)return;
+    var w=st.queue[0];if(!w)return;
+    var ch=choiceFor(w);
+    var okp=(pick===ch.ans);
+    st.locked=1;
+    document.querySelectorAll('.fopt').forEach(function(x){
+      var ii=Number(x.dataset.i);
+      if(ii===ch.ans)x.classList.add('ok');
+      else if(ii===pick)x.classList.add('bad');
+      else x.classList.add('dim');
+    });
+    var fb=q('#flash-back');if(fb)fb.classList.add('show');
+    b=q('#btn-skip');if(b)b.classList.add('hidden');
+    b=q('#btn-nextc');if(b)b.classList.remove('hidden');
+    rate(w,okp?'g':'y');
+    if(okp)st.ok=(st.ok||0)+1;else st.bad=(st.bad||0)+1;
+  };
+  document.querySelectorAll('.fopt').forEach(function(el){el.onclick=function(){choiceAns(Number(el.dataset.i))}});
+  b=q('#btn-skip');if(b)b.onclick=function(){choiceAns(-1)};
+  b=q('#btn-nextc');if(b)b.onclick=function(){var st=state.review;if(!st)return;st.queue.shift();st.done++;st.locked=0;render();toTop()};
   document.querySelectorAll('.readlink').forEach(function(el){el.onclick=function(){openRead(Number(el.dataset.open))}});
   document.querySelectorAll('.tw').forEach(function(el){el.onclick=function(){
     if(Date.now()-(LP.fired||0)<700)return;   /* 刚才是长按，不当成点击 */
