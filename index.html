@@ -149,6 +149,8 @@ html.drawer .col-quiz.open .sec-title:first-of-type{padding-top:12px}
   .reader-grid .col-quiz::-webkit-scrollbar{width:0}
   .reader-grid .col-read{min-width:0}
 .wd{cursor:default}
+.wguess .wex{font-size:16.5px;line-height:1.85;background:#fbf7f0;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:8px 0 10px}
+.wguess .wex .tw{font-size:17px}
 .article span.wd,.article span.tw{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 #tip{position:fixed;z-index:90;max-width:min(78vw,320px);background:#2c2f3a;color:#fff;border-radius:12px;padding:10px 12px;font-size:14px;line-height:1.5;box-shadow:0 8px 26px rgba(0,0,0,.28);opacity:0;transform:translateY(6px);transition:opacity .14s,transform .14s;pointer-events:none}
 #tip.show{opacity:1;transform:translateY(0)}
@@ -630,16 +632,30 @@ function showWord(w,el){
     }
   });
   var stat=st?('已复习 '+(st.seen||0)+' 次 · 认识 '+(st.ok||0)+' 次 · 记不住 '+(st.bad||0)+' 次<br>下次复习：<b>'+(st.next||'—')+'</b>（'+lvText(st.lv)+'）'):'这个词还没考过你。读完记得做一遍下面的自测。';
+  var sent='';
+  (wd.senses||[]).forEach(function(s){if(!sent&&s&&s.ex)sent=s.ex});
+  if(!sent){DATA.passages.forEach(function(pp){if(!sent&&pp.ctx&&pp.ctx[w])sent=pp.ctx[w]})}
+  var guess=sent?('<div class="wsec wguess"><div class="wl">先看这句 · 想想它是什么意思</div><div class="wex">'+renderWithTargets(sent,[w])+'</div><button class="btn block" id="w-reveal">看释义 ▾</button></div>'):'';
   openSheet(
     '<div class="wh"><div class="ww">'+esc(w)+'</div><div class="wp">'+esc(wd.phon||'')+(poss?' · '+esc(poss):'')+'</div></div>'+
+    guess+
+    '<div id="w-body"'+(guess?' style="display:none"':'')+'>'+
     '<div class="wsec"><div class="wl">释义与用法</div>'+fullSenseHTML(wd)+'</div>'+
     (wd.note?'<div class="wsec"><div class="wl">考点提示</div><div class="wnote">'+esc(wd.note)+'</div></div>':'')+
     (ctxs?'<div class="wsec"><div class="wl">它在文章里</div>'+ctxs+'</div>':'')+
     '<div class="wsec"><div class="wl">你的掌握情况</div><div class="wstat">'+stat+'</div></div>'+
     '<div class="row" style="margin-top:16px;gap:8px"><button class="btn soft" id="mark-y" style="flex:1">没记住</button><button class="btn" id="mark-g" style="flex:1">我认识</button></div>'+
+    '</div>'+
     '<button class="btn grey block" id="close-sheet" style="margin-top:8px">收起</button>'
   );
   el.classList.add('looked');
+  var rv=document.getElementById('w-reveal');
+  if(rv)rv.onclick=function(){
+    var body=document.getElementById('w-body');
+    var on=body.style.display==='none';
+    body.style.display=on?'':'none';
+    rv.textContent=on?'收起释义 ▴':'看释义 ▾';
+  };
   document.getElementById('close-sheet').onclick=closeSheet;
   document.getElementById('mark-y').onclick=function(){rate(w,'y');closeSheet();toast('好，这个词明天再考你一次')};
   document.getElementById('mark-g').onclick=function(){rate(w,'g');closeSheet();toast('记下了，这个词先放一放')};
