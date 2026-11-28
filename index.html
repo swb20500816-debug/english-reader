@@ -393,6 +393,7 @@ function dictOf(word){
   return null;
 }
 var LP={x:0,y:0,timer:0,fired:0};
+var TIP_T=0;
 function tipAt(x,y,txt,sub){
   var t=document.getElementById('tip');if(!t)return;
   t.innerHTML='<b>'+esc(txt)+'</b>'+(sub?'<span>'+esc(sub)+'</span>':'');
@@ -401,9 +402,10 @@ function tipAt(x,y,txt,sub){
   var left=Math.max(10,Math.min(x-w/2,(window.innerWidth||360)-w-10));
   var top=y-h-14;if(top<8)top=y+18;
   t.style.left=left+'px';t.style.top=top+'px';
+  clearTimeout(TIP_T);TIP_T=setTimeout(tipHide,7000);
 }
 function zhOn(){return document.body.classList.contains('zh')}
-function tipHide(){var t=document.getElementById('tip');if(t)t.classList.remove('show')}
+function tipHide(){clearTimeout(TIP_T);var t=document.getElementById('tip');if(t){t.classList.remove('show');t.innerHTML=''}}
 function wordAt(node){
   while(node&&node!==document.body){
     if(node.dataset&&node.dataset.w)return node;
@@ -473,6 +475,7 @@ function stubbornList(){
 }
 var state={screen:'home',reading:null,review:null};
 function render(){
+  try{tipHide()}catch(e){}
   var app=document.getElementById('app');
   if(state.screen==='home')app.innerHTML=homeHTML();
   else if(state.screen==='read')app.innerHTML=readHTML();
@@ -621,6 +624,7 @@ function startReview(list,from){
 var LVN=['未学','1 天后','2 天后','4 天后','7 天后','15 天后','30 天后','45 天后','90 天后'];
 function lvText(lv){return LVN[Math.min(lv||0,8)]}
 function showWord(w,el){
+  try{tipHide()}catch(e){}
   var wd=findWord(w)||{word:w};
   var st=S.words[w];
   var poss=(wd.senses||[]).map(function(s){return s.pos}).filter(Boolean).filter(function(v,i,a){return a.indexOf(v)===i}).join(' / ');
